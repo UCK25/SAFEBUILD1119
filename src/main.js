@@ -1,10 +1,6 @@
-import { startCamera } from './camera.js';
-import { loadModel, detectFrame } from './camera.js';
+console.log('main.js cargado correctamente');
 
-async function init() {
-  await startCamera();
-  await loadModel();
-  requestAnimationFrame(detectFrame);
-}
-
-init();
+document.body.insertAdjacentHTML(
+  'beforeend',
+  '<p>main.js está funcionando</p>'
+);
