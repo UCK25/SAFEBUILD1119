@@ -1,53 +1,47 @@
-/* auth.js - gestión de usuarios mínima (localStorage por defecto)
-   Estructura usuario: { id, email, password (plain en demo), role }
-   Para producción conecta Supabase: pega URL y KEY y descomenta el bloque indicado.
-*/
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const USERS_KEY = 'epp_users';
-const SESSION_KEY = 'epp_session';
+const SUPABASE_URL = "https://wrhgsuuzipsummbilxbg.supabase.co";
+const SUPABASE_ANON = "SUPABASE_CLIENT_API_KEY";
 
-// Opcional: configura Supabase aquí si quieres usar nube.
-// const SUPABASE_URL = '';
-// const SUPABASE_KEY = '';
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
-export function authInit() {
-  if (!localStorage.getItem(USERS_KEY)) {
-    // crear admin demo por defecto
-    const admin = { id: 'admin', email: 'admin@demo', password: 'admin', role: 'admin' };
-    localStorage.setItem(USERS_KEY, JSON.stringify([admin]));
-  }
+export async function login(username, password) {
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("username", username)
+    .eq("password", password)
+    .single();
+
+  if (error || !data) return null;
+  return data;
 }
 
-export function listUsersLocal(){
-  return JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+export async function createGuestUser(username) {
+  const { data, error } = await supabase
+    .from("users")
+    .insert({
+      username,
+      password: "123",
+      role: "guest"
+    })
+    .select()
+    .single();
+
+  if (error) return null;
+  return data;
 }
 
-export function saveUsersLocal(arr){
-  localStorage.setItem(USERS_KEY, JSON.stringify(arr));
+export async function logEPPEvent({ user_id, nombre, motivo, tipo }) {
+  await supabase.from("epp_logs").insert({
+    user_id,
+    nombre,
+    motivo,
+    tipo
+  });
 }
 
-export async function loginDemo(email, password, role='invitado', opts={createIfMissing:false}) {
-  // opcional: si SUPABASE_URL configurado, aquí harías login remoto.
-  // if (SUPABASE_URL) { ... }
-
-  const users = listUsersLocal();
-  let u = users.find(x => x.email === email);
-  if (!u && opts.createIfMissing) {
-    u = { id: 'u'+Date.now(), email, password, role };
-    users.push(u);
-    saveUsersLocal(users);
-  }
-  if (!u) { alert('Usuario no existe. Puedes crear uno con Crear usuario demo.'); return null; }
-  if (u.password !== password) { alert('Contraseña incorrecta'); return null; }
-  const session = { id: u.id, email: u.email, role: u.role };
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  return session;
-}
-
-export function currentUser(){
-  return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
-}
-
-export function logout(){
-  localStorage.removeItem(SESSION_KEY);
+export async function getLogs() {
+  const { data } = await supabase.from("epp_logs").select("*");
+  return data;
 }
