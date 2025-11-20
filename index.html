@@ -3,98 +3,110 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>SAFEBUILD</title>
+  <title>Detector de EPP</title>
   <style>
-    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin: 16px; }
-    header { display:flex; gap:12px; align-items:center; }
-    #cameraWrap { display:flex; gap:12px; flex-wrap:wrap; margin-top:12px; }
-    video, canvas { max-width: 640px; width: 100%; border: 1px solid #ddd; border-radius:6px; }
-    #controls { margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; }
-    .badge { padding:6px 10px; border-radius:6px; background:#eee; }
-    #logs { margin-top:16px; max-width:1000px; }
-    table { border-collapse: collapse; width:100%; }
-    th,td { border:1px solid #ddd; padding:8px; text-align:left; }
-    .btn { padding:8px 12px; border-radius:6px; border: none; cursor:pointer; background:#2f6bed; color:white; }
+    :root { --primary:#2f6bed; --muted:#666; --card:#fff; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin: 16px; background:#f6f7fb; color:#222; }
+    header { display:flex; gap:12px; align-items:center; justify-content:space-between; }
+    h1 { margin:0; font-size:1.25rem; }
+    main { margin-top:12px; display:flex; gap:16px; flex-wrap:wrap; }
+    .card { background:var(--card); border:1px solid #e6e9ef; padding:12px; border-radius:8px; box-shadow:0 1px 2px rgba(10,10,10,0.03); }
+    #loginBox { width:320px; }
+    label { display:block; margin-top:8px; font-size:0.9rem; }
+    input[type=text], input[type=password], select { padding:8px; width:100%; box-sizing:border-box; margin-top:6px; border-radius:6px; border:1px solid #ddd; }
+    .btn { padding:8px 12px; border-radius:6px; border: none; cursor:pointer; background:var(--primary); color:white; }
     .btn.secondary { background:#666; }
+    #cameraWrap { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-start; }
+    video, canvas { max-width: 640px; width: 100%; border-radius:6px; border:1px solid #ddd; background:#000; }
+    #controls { margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; }
+    .badge { padding:6px 10px; border-radius:6px; background:#eee; display:inline-block; }
+    #logs { margin-top:16px; max-width:1000px; }
+    table { border-collapse: collapse; width:100%; background:#fff; border:1px solid #e6e9ef; }
+    th,td { border:1px solid #eee; padding:8px; text-align:left; font-size:0.9rem; }
     .hidden { display:none; }
-    #loginBox { border:1px solid #ddd; padding:12px; border-radius:8px; display:inline-block; }
-    label { display:block; margin-top:6px; font-size:0.9rem; }
-    input[type=text], input[type=password], select { padding:8px; width:100%; box-sizing:border-box; margin-top:4px; }
+    .small { font-size:0.85rem; color:#555; }
   </style>
-  <!-- Lector QR (global jsQR) -->
+
+  <!-- jsQR y qrcode (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-  <!-- Generador QR (qrcode) -->
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
 </head>
 <body>
   <header>
-    <h1>SafeBuild</h1>
+    <div style="display:flex;gap:12px;align-items:center">
+      <h1>Detector de EPP</h1>
+      <div id="envBadge" class="badge small">Producción</div>
+    </div>
     <div id="userInfo" class="badge">No autenticado</div>
   </header>
 
-  <section id="loginSection">
-    <div id="loginBox">
-      <h3>Iniciar sesión</h3>
-      <label>Email
-        <input id="loginEmail" type="text" placeholder="ej: juan@empresa.com" />
-      </label>
-      <label>Contraseña
-        <input id="loginPass" type="password" placeholder="contraseña" />
-      </label>
-      <label>Rol
-        <select id="loginRole">
-          <option value="invitado">Invitado</option>
-          <option value="supervisor">Supervisor</option>
-          <option value="admin">Administrador</option>
-        </select>
-      </label>
-      <div style="margin-top:10px;">
-        <button id="btnLogin" class="btn">Entrar (modo demo)</button>
-        <button id="btnCreate" class="btn secondary">Crear usuario demo</button>
-      </div>
-      <p style="font-size:0.85rem;margin-top:8px;color:#555;">
-        * En demo los usuarios se guardan en tu navegador (localStorage). Para almacenar en la nube, configura Supabase en <code>src/auth.js</code>.
-      </p>
-    </div>
-  </section>
+  <main>
+    <!-- LOGIN -->
+    <section id="loginSection" class="card" aria-label="Login">
+      <div id="loginBox">
+        <h3>Iniciar sesión</h3>
 
-  <section id="appSection" class="hidden">
-    <div id="cameraWrap">
-      <div style="flex:1;min-width:300px">
-        <video id="camera" autoplay playsinline></video>
-        <canvas id="overlay"></canvas>
-        <div id="status" class="badge" style="margin-top:8px;">Estado: listo</div>
-      </div>
+        <label for="loginUser">Usuario</label>
+        <input id="loginUser" type="text" placeholder="usuario" autocomplete="username" />
 
-      <div style="width:320px;min-width:240px">
-        <h3>Controles</h3>
-        <div id="controls">
-          <button id="btnToggleCam" class="btn secondary">Detener cámara</button>
-          <button id="btnDownloadQR" class="btn">Descargar mi QR</button>
-          <button id="btnViewLogs" class="btn">Ver registros</button>
-          <button id="btnDownloadAllQR" class="btn secondary">Descargar todos los QR (admin)</button>
+        <label for="loginPass">Contraseña</label>
+        <input id="loginPass" type="password" placeholder="contraseña" autocomplete="current-password" />
+
+        <div style="margin-top:10px; display:flex; gap:8px;">
+          <button id="btnLogin" class="btn">Entrar</button>
+          <button id="btnCreateGuest" class="btn secondary">Crear como invitado</button>
         </div>
 
-        <div style="margin-top:12px;">
-          <h4>Configuración de alerta</h4>
-          <label>Webhook de alerta (opcional)
+        <p id="loginError" class="small" style="color:#b00020;margin-top:8px;"></p>
+
+        <p class="small" style="margin-top:12px;color:#444">
+          Usuarios de prueba: <strong>admin / admin123</strong>, <strong>supervisor / supervisor123</strong>, <strong>invitado / 123</strong>.
+        </p>
+      </div>
+    </section>
+
+    <!-- APP -->
+    <section id="appSection" class="card hidden" style="flex:1;min-width:320px;">
+      <div id="cameraWrap">
+        <div style="flex:1;min-width:300px">
+          <video id="camera" autoplay playsinline muted></video>
+          <canvas id="overlay"></canvas>
+          <div id="status" class="badge" style="margin-top:8px;">Estado: inactivo</div>
+        </div>
+
+        <aside style="width:320px;min-width:240px">
+          <h3>Controles</h3>
+          <div id="controls">
+            <button id="btnToggleCam" class="btn">Iniciar cámara</button>
+            <button id="btnDownloadQR" class="btn">Descargar mi QR</button>
+            <button id="btnViewLogs" class="btn secondary">Ver registros</button>
+            <button id="btnDownloadAllQR" class="btn secondary">Descargar todos los QR</button>
+          </div>
+
+          <div style="margin-top:12px;">
+            <h4>Alerta</h4>
+            <label for="webhookUrl">Webhook (opcional)</label>
             <input id="webhookUrl" type="text" placeholder="https://hooks.example.com/..." />
-          </label>
-          <button id="btnSaveWebhook" class="btn" style="margin-top:8px">Guardar webhook</button>
-        </div>
-      </div>
-    </div>
+            <button id="btnSaveWebhook" class="btn" style="margin-top:8px">Guardar webhook</button>
+          </div>
 
-    <div id="logs" class="hidden">
-      <h3>Registros</h3>
-      <table id="logsTable">
-        <thead>
-          <tr><th>Fecha</th><th>Usuario (QR)</th><th>Motivo</th><th>Casco</th><th>Chaleco</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </section>
+          <div style="margin-top:12px;">
+            <button id="btnLogout" class="btn secondary">Cerrar sesión</button>
+          </div>
+        </aside>
+      </div>
+
+      <div id="logs" class="hidden" style="margin-top:14px;">
+        <h3>Registros</h3>
+        <table id="logsTable">
+          <thead>
+            <tr><th>Fecha</th><th>Usuario (QR)</th><th>Motivo</th><th>Casco</th><th>Chaleco</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
 
   <script type="module" src="/src/main.js"></script>
 </body>
