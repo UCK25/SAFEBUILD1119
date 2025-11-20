@@ -1,5 +1,5 @@
-export const ROLES = {
-  ADMIN: 'admin',
-  SUPERVISOR: 'supervisor',
-  INVITADO: 'invitado'
+export const rolesAllowed = {
+  admin: { canDownloadAllQR: true, canViewAllLogs: true },
+  supervisor: { canDownloadAllQR: false, canViewAllLogs: true },
+  invitado: { canDownloadAllQR: false, canViewAllLogs: false }
 };

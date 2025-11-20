@@ -1,6 +1,8 @@
 {
   "version": 2,
   "routes": [
+    { "src": "/src/(.*)", "headers": { "Content-Type": "application/javascript" }, "dest": "/src/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
+

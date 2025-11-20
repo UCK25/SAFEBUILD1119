@@ -1,13 +1,100 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SAFEBUILD</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Detector de EPP</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin: 16px; }
+    header { display:flex; gap:12px; align-items:center; }
+    #cameraWrap { display:flex; gap:12px; flex-wrap:wrap; margin-top:12px; }
+    video, canvas { max-width: 640px; width: 100%; border: 1px solid #ddd; border-radius:6px; }
+    #controls { margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; }
+    .badge { padding:6px 10px; border-radius:6px; background:#eee; }
+    #logs { margin-top:16px; max-width:1000px; }
+    table { border-collapse: collapse; width:100%; }
+    th,td { border:1px solid #ddd; padding:8px; text-align:left; }
+    .btn { padding:8px 12px; border-radius:6px; border: none; cursor:pointer; background:#2f6bed; color:white; }
+    .btn.secondary { background:#666; }
+    .hidden { display:none; }
+    #loginBox { border:1px solid #ddd; padding:12px; border-radius:8px; display:inline-block; }
+    label { display:block; margin-top:6px; font-size:0.9rem; }
+    input[type=text], input[type=password], select { padding:8px; width:100%; box-sizing:border-box; margin-top:4px; }
+  </style>
+  <!-- Lector QR (global jsQR) -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <!-- Generador QR (qrcode) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
 </head>
 <body>
+  <header>
+    <h1>Detector de EPP</h1>
+    <div id="userInfo" class="badge">No autenticado</div>
+  </header>
 
-  <h1>SafeBuild</h1>
+  <section id="loginSection">
+    <div id="loginBox">
+      <h3>Iniciar sesión</h3>
+      <label>Email
+        <input id="loginEmail" type="text" placeholder="ej: juan@empresa.com" />
+      </label>
+      <label>Contraseña
+        <input id="loginPass" type="password" placeholder="contraseña" />
+      </label>
+      <label>Rol
+        <select id="loginRole">
+          <option value="invitado">Invitado</option>
+          <option value="supervisor">Supervisor</option>
+          <option value="admin">Administrador</option>
+        </select>
+      </label>
+      <div style="margin-top:10px;">
+        <button id="btnLogin" class="btn">Entrar (modo demo)</button>
+        <button id="btnCreate" class="btn secondary">Crear usuario demo</button>
+      </div>
+      <p style="font-size:0.85rem;margin-top:8px;color:#555;">
+        * En demo los usuarios se guardan en tu navegador (localStorage). Para almacenar en la nube, configura Supabase en <code>src/auth.js</code>.
+      </p>
+    </div>
+  </section>
+
+  <section id="appSection" class="hidden">
+    <div id="cameraWrap">
+      <div style="flex:1;min-width:300px">
+        <video id="camera" autoplay playsinline></video>
+        <canvas id="overlay"></canvas>
+        <div id="status" class="badge" style="margin-top:8px;">Estado: listo</div>
+      </div>
+
+      <div style="width:320px;min-width:240px">
+        <h3>Controles</h3>
+        <div id="controls">
+          <button id="btnToggleCam" class="btn secondary">Detener cámara</button>
+          <button id="btnDownloadQR" class="btn">Descargar mi QR</button>
+          <button id="btnViewLogs" class="btn">Ver registros</button>
+          <button id="btnDownloadAllQR" class="btn secondary">Descargar todos los QR (admin)</button>
+        </div>
+
+        <div style="margin-top:12px;">
+          <h4>Configuración de alerta</h4>
+          <label>Webhook de alerta (opcional)
+            <input id="webhookUrl" type="text" placeholder="https://hooks.example.com/..." />
+          </label>
+          <button id="btnSaveWebhook" class="btn" style="margin-top:8px">Guardar webhook</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="logs" class="hidden">
+      <h3>Registros</h3>
+      <table id="logsTable">
+        <thead>
+          <tr><th>Fecha</th><th>Usuario (QR)</th><th>Motivo</th><th>Casco</th><th>Chaleco</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
 
   <script type="module" src="/src/main.js"></script>
 </body>

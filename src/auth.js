@@ -1,24 +1,53 @@
-import { createClient } from '@supabase/supabase-js';
+/* auth.js - gestión de usuarios mínima (localStorage por defecto)
+   Estructura usuario: { id, email, password (plain en demo), role }
+   Para producción conecta Supabase: pega URL y KEY y descomenta el bloque indicado.
+*/
 
-export const supabase = createClient(
-  "TU_URL_SUPABASE",
-  "TU_PUBLIC_ANON_KEY"
-);
+const USERS_KEY = 'epp_users';
+const SESSION_KEY = 'epp_session';
 
-export async function verifySession() {
-  const { data } = await supabase.auth.getSession();
-  return data.session;
+// Opcional: configura Supabase aquí si quieres usar nube.
+// const SUPABASE_URL = '';
+// const SUPABASE_KEY = '';
+
+export function authInit() {
+  if (!localStorage.getItem(USERS_KEY)) {
+    // crear admin demo por defecto
+    const admin = { id: 'admin', email: 'admin@demo', password: 'admin', role: 'admin' };
+    localStorage.setItem(USERS_KEY, JSON.stringify([admin]));
+  }
 }
 
-export async function getUserRole() {
-  const session = await verifySession();
-  if (!session) return null;
+export function listUsersLocal(){
+  return JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+}
 
-  const { data } = await supabase
-    .from('users')
-    .select('role')
-    .eq('id', session.user.id)
-    .single();
+export function saveUsersLocal(arr){
+  localStorage.setItem(USERS_KEY, JSON.stringify(arr));
+}
 
-  return data.role;
+export async function loginDemo(email, password, role='invitado', opts={createIfMissing:false}) {
+  // opcional: si SUPABASE_URL configurado, aquí harías login remoto.
+  // if (SUPABASE_URL) { ... }
+
+  const users = listUsersLocal();
+  let u = users.find(x => x.email === email);
+  if (!u && opts.createIfMissing) {
+    u = { id: 'u'+Date.now(), email, password, role };
+    users.push(u);
+    saveUsersLocal(users);
+  }
+  if (!u) { alert('Usuario no existe. Puedes crear uno con Crear usuario demo.'); return null; }
+  if (u.password !== password) { alert('Contraseña incorrecta'); return null; }
+  const session = { id: u.id, email: u.email, role: u.role };
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  return session;
+}
+
+export function currentUser(){
+  return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+}
+
+export function logout(){
+  localStorage.removeItem(SESSION_KEY);
 }
